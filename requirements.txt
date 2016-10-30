@@ -1,0 +1,13 @@
+cffi==1.8.3
+elasticsearch==5.0.0
+img2pdf==0.2.1
+ocrmypdf==4.2.5
+Pillow==3.4.2
+ply==3.9
+py==1.4.31
+pycparser==2.16
+PyPDF2==1.26.0
+pytest==3.0.3
+reportlab==3.3.0
+ruffus==2.6.3
+urllib3==1.18
