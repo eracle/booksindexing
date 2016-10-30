@@ -76,7 +76,7 @@ def test_upload_pdf_en_ocred(es_connection):
     logger.info('removing the file: %s' % output_file)
     os.remove(output_file)
 
-@pytest.mark.skip(reason="read_pdf_content broken cause of pdfminer3k no more used")
+
 def test_ocr_ize_en_side():
     output_file = _tmp_filename(en_ocr_side)
 
@@ -90,12 +90,12 @@ def test_ocr_ize_en_side():
     os.remove(output_file)
 
 
-@pytest.mark.skip(reason="read_pdf_content broken cause of pdfminer3k no more used")
+
 def test_read_pdf_content_empty():
     assert read_pdf_content(en_ocr_small) == '\f'
 
 
-@pytest.mark.skip(reason="read_pdf_content broken cause of pdfminer3k no more used")
+
 def test_read_pdf_content_not_empty():
     content = read_pdf_content(it_pdf)
     assert it_pdf_search_phrase in content

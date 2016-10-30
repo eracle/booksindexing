@@ -98,7 +98,7 @@ def ocr_ize(input_file, output_file, lang='eng'):
 
 def read_pdf_content(input_file):
     """
-    Use pdfminer3k library to extract the textual content from a pdf which path is passed through the
+    Use my pdfminer library version to extract the textual content from a pdf which path is passed through the
      input_file parameter.
     :param input_file: The path of the pdf file from where the content is extracted.
     :return: A string with the content of the file.

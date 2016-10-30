@@ -16,6 +16,7 @@ Install dependencies (Ubuntu 16) :
 
 
     pip install requirements.txt
+    pip install -e git+https://github.com/eracle/pdfminer.git
     
 ### Test:
     pytest test.py
