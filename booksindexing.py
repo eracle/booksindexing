@@ -19,7 +19,7 @@ index_mapping = {
 
 def check_if_index_exists(es_conn, index_name, index_mapping):
     """
-    Checks if there exists an index, if do not it creates it.
+    Checks if there exists an index, if does not it creates it.
     :param es_conn: The elastic search (python) object;
     :param index_name: The name of the issued index;
     :param index_mapping: mapping of the new index.
