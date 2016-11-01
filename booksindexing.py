@@ -1,11 +1,22 @@
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfpage import PDFTextExtractionNotAllowed
+from pdfminer.pdfinterp import PDFResourceManager
+from pdfminer.pdfinterp import PDFPageInterpreter
+from pdfminer.pdfdevice import PDFDevice
+from pdfminer.layout import LAParams, LTChar
+from pdfminer.converter import PDFPageAggregator
+
+import operator
+
 import subprocess
 import base64
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
-
 
 doc_type = 'book'
 
@@ -69,7 +80,6 @@ def ocr_ize(input_file, output_file, lang='eng'):
     :return: None
     """
 
-    # TODO: install tesseract - > italian language
     """
       -l LANGUAGE, --language LANGUAGE
                             languages of the file to be OCRed (see tesseract
@@ -110,3 +120,84 @@ def read_pdf_content(input_file):
     output, error = process.communicate()
     logger.info("pdf2txt.py, error!:%s" % error)
     return output.decode('utf-8')
+
+
+def get_chars_coordinates(pdf_path):
+    """
+    Return an iterator over lists of coordinates (x,y).
+    Every coordinate is associate with a single character in the pdf file.
+    Every list of coordinates is associated with a single page of a pdf.
+    The iterator iterates over all the pages of the pdf file which path is passed as a parameter.
+    :param pdf_path: Path of the pdf file to analyse.
+    :return: An iterator over lists of coordinates (x,y).
+    """
+
+    def _parse_obj(lt_objs, points):
+        # loop over the object list
+        for obj in lt_objs:
+            if isinstance(obj, LTChar):
+                points.append((obj.bbox[0], obj.bbox[1]))
+            else:
+                if hasattr(obj, '_objs'):
+                    _parse_obj(obj._objs, points)
+
+    # Liberally inspired from:
+    # http://www.unixuser.org/~euske/python/pdfminer/programming.html
+
+    fp = open(pdf_path, 'rb')
+    parser = PDFParser(fp)
+    document = PDFDocument(parser)
+    if not document.is_extractable:
+        raise PDFTextExtractionNotAllowed
+    rsrcmgr = PDFResourceManager()
+    device = PDFDevice(rsrcmgr)
+    laparams = LAParams()
+    device = PDFPageAggregator(rsrcmgr, laparams=laparams)
+    interpreter = PDFPageInterpreter(rsrcmgr, device)
+
+    # loop over all pages in the document
+    for page in PDFPage.create_pages(document):
+        interpreter.process_page(page)
+        layout = device.get_result()
+        points = []
+        _parse_obj(layout._objs, points)
+        yield points
+
+
+def is_double_layered(coordinates):
+    """
+    Returns True if the list of coordinates (x,y) passed belongs to a double layer pdf page,
+    False if they belongs to a single layer page.
+    For the definition of single/double layer page check the unpaper documentation, in:
+    https://github.com/Flameeyes/unpaper/blob/master/doc/basic-concepts.md
+    :param coordinates: a list of coordinates (x,y) of all the single characters present in a pdf page.
+    :return: True of False
+    """
+    # projecting all the character coordinates into the x axis
+    # assuming the pdf was already correctly oriented
+    xs = [x[0] for x in coordinates]
+    sorted_xs = sorted(xs)
+
+    # computing all the gaps between consecutive characters
+    gaps = [b - a for a, b in zip(sorted_xs, sorted_xs[1:])]
+
+    # computing the maximum gap between pairs of consecutive characters (projected in the x-axis)
+    max_gap_index, max_gap = max(enumerate(gaps), key=operator.itemgetter(1))
+
+    # computing the distance between the most left character and the most right one
+    max_xs = max(xs)
+    min_xs = min(xs)
+    page_width = max_xs - min_xs
+
+    # computing the mean x-position between the two consecutive characters with highest distance
+    max_gap_x_position = (sorted_xs[max_gap_index] + sorted_xs[max_gap_index + 1]) / 2
+
+    logger.debug("Page width: %s" % page_width)
+    logger.debug("Max gap x position: %s" % max_gap_x_position)
+
+    # import matplotlib.pyplot as plt
+    # ys = [1 if x == max_xs else -1 if x == min_xs else 2 if x == sorted_xs[max_gap_index] else 3 if x == sorted_xs[max_gap_index + 1] else 0 for x in sorted_xs]
+    # plt.scatter(sorted_xs, ys)
+    # plt.show()
+
+    return (max_gap > 0.1 * page_width) and (0.25 * page_width < (max_gap_x_position - min_xs) < page_width * 0.75)

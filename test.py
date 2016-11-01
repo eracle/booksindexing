@@ -7,6 +7,9 @@ import os
 index_name = 'test_index_da39a3ee5e6b4b0d3255bfef95601890afd80709'
 
 pdf_folder = 'test_pdf/'
+double_layered_folder = 'double_layered/'
+single_layered_folder = 'single_layered/'
+
 
 en_pdf = pdf_folder + 'en_pdf.pdf'
 en_pdf_search_phrase = "temporary promotion model"
@@ -90,12 +93,28 @@ def test_ocr_ize_en_side():
     os.remove(output_file)
 
 
-
 def test_read_pdf_content_empty():
     assert read_pdf_content(en_ocr_small) == '\f'
-
 
 
 def test_read_pdf_content_not_empty():
     content = read_pdf_content(it_pdf)
     assert it_pdf_search_phrase in content
+
+
+def test_is_double_layered_folders():
+    def _assert_layer(folder, expected_layer):
+        for file in os.listdir(pdf_folder + folder):
+            path = pdf_folder + folder + file
+            logger.info('Layer checking, file: %s' % path)
+            coo_iter = get_chars_coordinates(path)
+            coordinates = next(coo_iter)
+            assert len(coordinates)
+            assert is_double_layered(coordinates) == expected_layer
+
+    _assert_layer(single_layered_folder, False)
+    _assert_layer(double_layered_folder, True)
+
+
+
+
